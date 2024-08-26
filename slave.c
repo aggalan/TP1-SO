@@ -1,12 +1,14 @@
 #include "commons.h"
 #define MAX_CMD_SIZE 100
 #define MAX_PATH_SIZE 100
+#define MAX_MD5_SIZE 100
 
 int main() {
     
     char path[MAX_PATH_SIZE] = {0};
     char command[MAX_CMD_SIZE];
-    char * md5 = "md5sum %s";
+    char * md5sum = "md5sum %s";
+    char md5[MAX_MD5_SIZE];
 
     while(1){
 
@@ -18,7 +20,7 @@ int main() {
     }
     
     //Guardo el comando 
-    sprintf(command, md5, path);
+    sprintf(command, md5sum, path);
 
     //Ejecuto el comando en la shell
     FILE * log = popen(command, "r");
@@ -28,11 +30,21 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+
+    //Me guardo el md5
+
+    fgets(md5, MAX_MD5_SIZE, log);
+
+    //Faltaria hacerlo null terminated (HACER)
+
+    //Cierro
     pclose(log);
+
+    //Escribo en el pipe (HACER)
 
     }
 
-    // Escribir el pipe
+    
 
     return 0;
 }
