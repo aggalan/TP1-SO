@@ -1,8 +1,8 @@
 #include "commons.h"
 #include <sys/wait.h>
 
-#define MAX_SLAVES 5
-#define FILES_PER_SLAVE 2
+#define MAX_SLAVES 2
+#define FILES_PER_SLAVE 1
 
 int main(int argc, char *argv[]) {
     
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     pid_t pids[MAX_SLAVES];
 
     for (int i = 0; i< MAX_SLAVES; i++) {
-        if (pipe(pipe_to_child[i] == -1 || pipe(pipe_from_child[i] == -1))) {
+        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1) {
             perror("pipe");
             exit(EXIT_FAILURE);
         }
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
                     buffer[bytes_read-1] = '\n'; // quiero que haga enter >:(
                     buffer[bytes_read] = '\0'; // null terinated
                     // printf("recibido de hijo %d: %s\n", i, buffer); lol no va
-                    if (fprintf(file, "%s", bytes_read) < 0) {// escribo en el archivo results un md5
+                    if (fprintf(file, "%s", buffer) < 0) {// escribo en el archivo results un md5
                         perror("Error writing to file");
                         fclose(file);
                         exit(EXIT_FAILURE);
@@ -149,6 +149,9 @@ int main(int argc, char *argv[]) {
         perror("Error closing file");
         return EXIT_FAILURE;
     }
+
+
+
 
 }
     
