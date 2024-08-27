@@ -13,20 +13,15 @@ int main() {
     while(1){
 
     // lectura del pipe
-     if (fgets(path, MAX_PATH_SIZE, stdin) == NULL) {
+    if (fgets(path, MAX_PATH_SIZE, stdin) == NULL) {
             // revisa si no hay nada mas que leer o error
-            break;
+            continue;
     }
 
     
     // saco el newline y lo reemplazo por null terminated
     path[strcspn(path, "\n")] = '\0';
 
-
-    //Me fijo que queden path para leer, sino corto
-    if(path[0] ==  '\0'){
-        break;
-    }
     
     //Guardo el comando 
     sprintf(command, md5sum, path);
@@ -55,9 +50,7 @@ int main() {
     //Escribo en el pipe 
     printf("%s\n", md5);
 
-    fflush(stdout); // me aseguro que se mande y de manera segura (como que limpia el buffer y se asegura que no quede nada y se mande ni idea)
+    fflush(stdout); // basicamente las funciones com printf y demas usan un buffer y esta maravilla acelera y asegura el pasaje de datos al stream
 
     }
-
-    return 0;
 }
