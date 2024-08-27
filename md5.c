@@ -1,12 +1,21 @@
 #include "commons.h"
 #include <sys/wait.h>
 
+
+#define MAX_FILES 100
+#define MAX_SLAVES 5
+#define FILES_PER_SLAVE 2
+
 int main(int argc, char *argv[]) {
     
     if(argc < 2){
         fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    char *file_paths[MAX_FILES];
+    int files_processed = 0;
+    int total_files = MAX_FILES;
 
     //Como crear un pipe
 
