@@ -1,6 +1,9 @@
 #include "commons.h"
+#include "memory.h"
+#include "shm_manager.h"
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <string.h>
 
 #define FILES_PER_SLAVE 2
 
@@ -9,6 +12,12 @@ struct file_info {
     char md5[100];
     char filename[100];
 };
+
+int shm_fd;
+const char *shm_name = "/buffer";
+const char *sem_name = "/semaphore";
+size_t size = 4096;
+
 
 
 int main(int argc, char *argv[]) {
