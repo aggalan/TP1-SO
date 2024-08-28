@@ -2,7 +2,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 
-#define FILES_PER_SLAVE 1
+#define FILES_PER_SLAVE 2
 
 struct file_info {
     pid_t pid;
@@ -12,8 +12,8 @@ struct file_info {
 
 
 int main(int argc, char *argv[]) {
-    // int slaves = ((argc - 1) / 20) > 0? (argc-1)/20:2;
-    int slaves = 1;
+    int slaves = ((argc - 1) / 20) > 0? (argc-1)/20:2;
+    // int slaves = 15;
     
     if(argc < 2){
         fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
                     //hay algo para leer
                     char buff[100];
                     read(pipe_from_child[i][0], buff,100);
-                    fprintf(file, "%s\n", buff);
+                    fprintf(file, "PID: %d HASH: %s\n", pids[i], buff);
                     files_read++;
                 }
 
