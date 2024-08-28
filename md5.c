@@ -74,67 +74,50 @@ int main(int argc, char *argv[]) {
         close(pipe_from_child[i][1]); //cierro el extremo de escritura 
     }
 
-    fd_set read_fds, write_fds; //armo mis 2 fd sets para el select (uno para cada pipe)
-
-
+  
 
     for (int i = 0; i < slaves; i++) {
-        for (int j = 0; j < FILES_PER_SLAVE; j++, files_processed++) {
-            if (files_processed < argc - 1) {
-                write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
-            } else {
-                break;
-            }
+        for (int j = 0; j < FILES_PER_SLAVE && files_processed < argc - 1; j++, files_processed++) {
+            write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
         }
     }
 
-    while(files_read < argc - 1) {
+   while (files_read < argc - 1) {
+        fd_set read_fds;
         FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
+        max_fd = 0;
 
         for (int i = 0; i < slaves; i++) {
-
-            FD_SET(pipe_to_child[i][1], &write_fds);
             FD_SET(pipe_from_child[i][0], &read_fds);
-
-            if (pipe_to_child[i][1] > max_fd) {
-                max_fd = pipe_to_child[i][1];
-            }
             if (pipe_from_child[i][0] > max_fd) {
                 max_fd = pipe_from_child[i][0];
             }
-
         }
 
-        int activity = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
-
-        
+        int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
         if (activity == -1) {
-            //womp womp
             perror("select");
             exit(EXIT_FAILURE);
         } else if (activity > 0) {
-            //hay algun archivo listo para recibir o leer
             for (int i = 0; i < slaves; i++) {
                 if (FD_ISSET(pipe_from_child[i][0], &read_fds)) {
-                    //hay algo para leer
                     char buff[100];
-                    read(pipe_from_child[i][0], buff,100);
-                    fprintf(file, "PID: %d HASH: %s\n", pids[i], buff);
-                    files_read++;
-                }
+                    int bytes_read = read(pipe_from_child[i][0], buff, sizeof(buff));
+                    if (bytes_read > 0) {
+                        buff[bytes_read] = '\0';
+                        fprintf(file, "PID: %d HASH: %s\n", pids[i], buff);
+                        files_read++;
 
-                if(FD_ISSET(pipe_to_child[i][1], &write_fds)) {
-                    //hay algo para escribir
-                    if (files_processed < argc - 1) {
-                        write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
-                        files_processed++;
+                        // Asigna el siguiente archivo disponible al esclavo que acaba de terminar
+                        if (files_processed < argc - 1) {
+                            write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
+                            files_processed++;
+                        }
                     }
                 }
             }
         }
-
     }
 
 
@@ -143,22 +126,6 @@ int main(int argc, char *argv[]) {
         close(pipe_from_child[i][0]);
     }
 
-
-    
-
-    // printf("ACA");
-
-    // write(pipe_to_child[0][1], buff1, strlen(buff1) + 1);
-
-    // printf("ACA1");
-
-    // wait(NULL);
-
-    // printf("ACA2\n");
-
-    // read(pipe_from_child[0][0], buff, 100);
-
-    // printf("el buffer dice: %s\n", buff);
 
     if (fclose(file) != 0) {
         perror("Error closing file");
