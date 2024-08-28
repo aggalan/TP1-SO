@@ -13,43 +13,27 @@ struct file_info {
     char md5[100];
     char filename[100];
 };
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]);
+void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty);
+char * read_from_pipe(int fd, char * buff);
+void process_files(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], char *argv[], int argc, FILE *file);
 
 
-void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty) {
-    for (int i = 0; i < qty; i++) {
-        if ((*files_processed) < total_files) {
-            int bytes_written = write(fd, argv[*files_processed + 1], strlen(argv[(*files_processed) + 1]) + 1);
-            if (bytes_written < 0) {
-                perror("write pipe");
-                exit(EXIT_FAILURE);
-            }
-            (*files_processed)++;
-        } else {
-            break;
-        }
-    }
-}
 
-char * read_from_pipe(int fd, char * buff) {
-    int bytes_read = read(fd, buff, 100);
-    if (bytes_read < 0) {
-        perror("read pipe");
-        exit(EXIT_FAILURE);
-    }
-    return buff;
-}
 
 
 int main(int argc, char *argv[]) {
-    int slaves = 2;
-
+    
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
+    int slaves = 2;
     int files_processed = 0, files_read = 0;
     int max_fd = 0;
+    int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
+    pid_t pids[slaves];
 
     const char *filename = "results.txt";
     FILE *file = fopen(filename, "w");
@@ -59,47 +43,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
-    pid_t pids[slaves];
+    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
 
-    for (int i = 0; i < slaves; i++) { 
-        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1) {
-            perror("pipe");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    for (int i = 0; i < slaves; i++) {
-        if ((pids[i] = fork()) == 0) {
-            // Child process
-            close(pipe_to_child[i][1]);
-            close(pipe_from_child[i][0]);
-
-            dup2(pipe_to_child[i][0], STDIN_FILENO);
-            close(pipe_to_child[i][0]);
-
-            dup2(pipe_from_child[i][1], STDOUT_FILENO);
-            close(pipe_from_child[i][1]);
-
-            char *args[] = {"./slave", NULL};
-            execve(args[0], args, NULL);
-            perror("execve");
-            exit(EXIT_FAILURE);
-        }
-        // Parent process
-        close(pipe_to_child[i][0]); 
-        close(pipe_from_child[i][1]); 
-    }
-
-
-
-
-    // Initial file assignment
     for (int i = 0; i < slaves; i++) {
         write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,argc-1, FILES_PER_SLAVE);
     }
-
-    
 
     while (files_read < argc - 1) {
     fd_set read_fds, write_fds;
@@ -151,4 +99,56 @@ int main(int argc, char *argv[]) {
     }
 
     return EXIT_SUCCESS;
+}
+
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]) {
+    for (int i = 0; i < slaves; i++) { 
+        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1) {
+            perror("pipe");
+            exit(EXIT_FAILURE);
+        }
+    
+        if ((pids[i] = fork()) == 0) {
+            // Proceso hijo
+            close(pipe_to_child[i][1]);
+            close(pipe_from_child[i][0]);
+
+            dup2(pipe_to_child[i][0], STDIN_FILENO);
+            close(pipe_to_child[i][0]);
+
+            dup2(pipe_from_child[i][1], STDOUT_FILENO);
+            close(pipe_from_child[i][1]);
+
+            char *args[] = {"./slave", NULL};
+            execve(args[0], args, NULL);
+            perror("execve");
+            exit(EXIT_FAILURE);
+        }
+        // Proceso padre
+        close(pipe_to_child[i][0]); 
+        close(pipe_from_child[i][1]); 
+    }
+}
+void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty) {
+    for (int i = 0; i < qty; i++) {
+        if ((*files_processed) < total_files) {
+            int bytes_written = write(fd, argv[*files_processed + 1], strlen(argv[(*files_processed) + 1]) + 1);
+            if (bytes_written < 0) {
+                perror("write pipe");
+                exit(EXIT_FAILURE);
+            }
+            (*files_processed)++;
+        } else {
+            break;
+        }
+    }
+}
+
+char * read_from_pipe(int fd, char * buff) {
+    int bytes_read = read(fd, buff, 100);
+    if (bytes_read < 0) {
+        perror("read pipe");
+        exit(EXIT_FAILURE);
+    }
+    return buff;
 }
