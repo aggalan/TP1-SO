@@ -3,6 +3,8 @@
 #define MAX_PATH_SIZE 100
 #define MAX_MD5_SIZE 100
 
+int pipe_read(int fd, char * buffer);
+
 int main() {
     
     char path[MAX_PATH_SIZE] = {0};
@@ -10,33 +12,14 @@ int main() {
     char * md5sum = "md5sum %s";
     char md5[MAX_MD5_SIZE];
 
-    // while (1) {
-    //     if (read(STDIN_FILENO, path, 10)) {
-    //         write(STDOUT_FILENO, path, 10);
-    //         break;
-    //     }
-    // }
-
-    
-
-
-    while(1){
+    while(pipe_read(STDIN_FILENO, path) > 0){       
         
-        // lectura del pipe
-        if (read(STDIN_FILENO, path, MAX_PATH_SIZE) <= 0) {
-                // revisa si no hay nada mas que leer o error
-                continue;
-        } else {
-            // saco el newline y lo reemplazo por null terminated
-        path[strcspn(path, "\n")] = '\0';
+        if(path[0] == 0){
+            break;
+        }
 
-
-        //Guardo el comando 
         sprintf(command, md5sum, path);
-        //podria ser asi y se usa el tamano prefijado:
-        //snprintf(command, MAX_CMD_SIZE, md5sum, path);
 
-        //Ejecuto el comando en la shell
         FILE * log = popen(command, "r");
 
         if(log == NULL){
@@ -44,11 +27,7 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-
-
-        //leo md5 checksum
         fgets(md5, MAX_MD5_SIZE, log);
-        
 
         //Cierro
         pclose(log);
@@ -56,13 +35,20 @@ int main() {
         //Escribo en el pipe 
         write(STDOUT_FILENO, md5, strlen(md5) + 1);
 
-        fflush(stdout); // basicamente las funciones com printf y demas usan un buffer y esta maravilla acelera y asegura el pasaje de datos al stream
-        
-        
-        }
-
-
-        
     
     }
+    close(STDOUT_FILENO);
+    exit(EXIT_SUCCESS);
+
+}
+
+int pipe_read(int fd, char * buffer){
+   int i = 0;
+   char last_read[1];
+   last_read[0] = 1;
+   while(last_read[0] != 0 && last_read[0] != '\n' && read(fd, last_read, 1) > 0){
+      buffer[i++] = last_read[0];
+   }
+   buffer[i] = 0;
+   return i;
 }
