@@ -138,6 +138,12 @@ int main(int argc, char *argv[]) {
     }
 
 
+    for (int i = 0; i < slaves; i++) {
+        close(pipe_to_child[i][1]);
+        close(pipe_from_child[i][0]);
+    }
+
+
     
 
     // printf("ACA");

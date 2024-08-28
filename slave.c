@@ -38,7 +38,7 @@ int main() {
     
     }
     close(STDOUT_FILENO);
-    exit(EXIT_SUCCESS);
+    // exit(EXIT_SUCCESS);
 
 }
 
