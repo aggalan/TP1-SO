@@ -4,6 +4,13 @@
 
 #define FILES_PER_SLAVE 1
 
+struct file_info {
+    pid_t pid;
+    char md5[100];
+    char filename[100];
+};
+
+
 int main(int argc, char *argv[]) {
     // int slaves = ((argc - 1) / 20) > 0? (argc-1)/20:2;
     int slaves = 1;
