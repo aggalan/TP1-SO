@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
     }
 
     while(files_read < argc - 1) {
-        printf("ACA");
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
 
@@ -115,16 +114,19 @@ int main(int argc, char *argv[]) {
                     //hay algo para leer
                     char buff[100];
                     read(pipe_from_child[i][0], buff,100);
-                    printf("el puto buffer dice: %s\n", buff);
+                    fprintf(file, "%s\n", buff);
                     files_read++;
                 }
+
+                if(FD_ISSET(pipe_to_child[i][1], &write_fds)) {
+                    //hay algo para escribir
+                    if (files_processed < argc - 1) {
+                        write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
+                        files_processed++;
+                    }
+                }
             }
-
-
         }
-
-
-
 
     }
 
@@ -149,8 +151,6 @@ int main(int argc, char *argv[]) {
         perror("Error closing file");
         return EXIT_FAILURE;
     }
-
-    return 0;
 
 }
    
