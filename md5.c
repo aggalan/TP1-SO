@@ -16,7 +16,6 @@ struct file_info {
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]);
 void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty);
 char * read_from_pipe(int fd, char * buff);
-void process_files(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], char *argv[], int argc, FILE *file);
 
 
 
@@ -30,6 +29,7 @@ int main(int argc, char *argv[]) {
     }
 
     int slaves = 2;
+    int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
     int max_fd = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
@@ -46,10 +46,10 @@ int main(int argc, char *argv[]) {
     setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
 
     for (int i = 0; i < slaves; i++) {
-        write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,argc-1, FILES_PER_SLAVE);
+        write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,files_to_process, FILES_PER_SLAVE);
     }
 
-    while (files_read < argc - 1) {
+    while (files_read < files_to_process) {
     fd_set read_fds, write_fds;
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
@@ -79,8 +79,8 @@ int main(int argc, char *argv[]) {
                     fprintf(file, "PID: %d HASH: %s\n", pids[i], read_from_pipe(pipe_from_child[i][0], buff));
                     files_read++;
                     if (FD_ISSET(pipe_to_child[i][1], &write_fds) ) {
-                        if (files_processed < argc - 1) {
-                            write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,argc-1, 1);
+                        if (files_processed < files_to_process) {
+                            write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,files_to_process, 1);
                         }
                     }
                 }
