@@ -14,6 +14,32 @@ struct file_info {
     char filename[100];
 };
 
+
+void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty) {
+    for (int i = 0; i < qty; i++) {
+        if ((*files_processed) < total_files) {
+            int bytes_written = write(fd, argv[*files_processed + 1], strlen(argv[(*files_processed) + 1]) + 1);
+            if (bytes_written < 0) {
+                perror("write pipe");
+                exit(EXIT_FAILURE);
+            }
+            (*files_processed)++;
+        } else {
+            break;
+        }
+    }
+}
+
+char * read_from_pipe(int fd, char * buff) {
+    int bytes_read = read(fd, buff, 100);
+    if (bytes_read < 0) {
+        perror("read pipe");
+        exit(EXIT_FAILURE);
+    }
+    return buff;
+}
+
+
 int main(int argc, char *argv[]) {
     int slaves = 2;
 
@@ -70,9 +96,7 @@ int main(int argc, char *argv[]) {
 
     // Initial file assignment
     for (int i = 0; i < slaves; i++) {
-        for (int j = 0; j < FILES_PER_SLAVE && files_processed < argc - 1; j++, files_processed++) {
-            write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
-        }
+        write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,argc-1, FILES_PER_SLAVE);
     }
 
     
@@ -104,16 +128,11 @@ int main(int argc, char *argv[]) {
             for (int i = 0; i < slaves; i++) {
                 if (FD_ISSET(pipe_from_child[i][0], &read_fds)) {
                     char buff[100];
-                    int bytes_read = read(pipe_from_child[i][0], buff, sizeof(buff));
-                    if (bytes_read > 0) {
-                        buff[bytes_read] = '\0';
-                        fprintf(file, "PID: %d HASH: %s\n", pids[i], buff);
-                        files_read++;
-                    }
+                    fprintf(file, "PID: %d HASH: %s\n", pids[i], read_from_pipe(pipe_from_child[i][0], buff));
+                    files_read++;
                     if (FD_ISSET(pipe_to_child[i][1], &write_fds) ) {
                         if (files_processed < argc - 1) {
-                            write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
-                            files_processed++;
+                            write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,argc-1, 1);
                         }
                     }
                 }
