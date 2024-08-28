@@ -1,6 +1,10 @@
 #include "commons.h"
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define FILES_PER_SLAVE 2
 
@@ -10,12 +14,10 @@ struct file_info {
     char filename[100];
 };
 
-
 int main(int argc, char *argv[]) {
-    int slaves = ((argc - 1) / 20) > 0? (argc-1)/20:2;
-    // int slaves = 15;
-    
-    if(argc < 2){
+    int slaves = 2;
+
+    if (argc < 2) {
         fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -23,23 +25,16 @@ int main(int argc, char *argv[]) {
     int files_processed = 0, files_read = 0;
     int max_fd = 0;
 
-    const char * filename = "results.txt";
-    FILE * file = fopen(filename, "w");
+    const char *filename = "results.txt";
+    FILE *file = fopen(filename, "w");
 
     if (file == NULL) {
         perror("Error opening file");
         return EXIT_FAILURE;
     }
 
-    // char buff[100];
-    // char * buff1 = "commons.h";
-
-
-    // tengo que leer y escribir con los hijos asi que creo dos pipes
-    int pipe_to_child[slaves][2], pipe_from_child[slaves][2]; 
-
+    int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
     pid_t pids[slaves];
-
 
     for (int i = 0; i < slaves; i++) { 
         if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1) {
@@ -48,17 +43,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for (int i = 0; i< slaves; i++) {
-
+    for (int i = 0; i < slaves; i++) {
         if ((pids[i] = fork()) == 0) {
-            //proceso hijo
+            // Child process
             close(pipe_to_child[i][1]);
             close(pipe_from_child[i][0]);
 
-            //redirecciono las entradas y salidas correspondiente de los pipes
             dup2(pipe_to_child[i][0], STDIN_FILENO);
             close(pipe_to_child[i][0]);
-            
 
             dup2(pipe_from_child[i][1], STDOUT_FILENO);
             close(pipe_from_child[i][1]);
@@ -67,34 +59,43 @@ int main(int argc, char *argv[]) {
             execve(args[0], args, NULL);
             perror("execve");
             exit(EXIT_FAILURE);
-
         }
-        //proceso padre
-        close(pipe_to_child[i][0]); //cierro el extremo de lectura
-        close(pipe_from_child[i][1]); //cierro el extremo de escritura 
+        // Parent process
+        close(pipe_to_child[i][0]); 
+        close(pipe_from_child[i][1]); 
     }
 
-  
 
+
+
+    // Initial file assignment
     for (int i = 0; i < slaves; i++) {
         for (int j = 0; j < FILES_PER_SLAVE && files_processed < argc - 1; j++, files_processed++) {
             write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
         }
     }
 
-   while (files_read < argc - 1) {
-        fd_set read_fds;
+    
+
+    while (files_read < argc - 1) {
+    fd_set read_fds, write_fds;
         FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
         max_fd = 0;
 
         for (int i = 0; i < slaves; i++) {
             FD_SET(pipe_from_child[i][0], &read_fds);
+            FD_SET(pipe_to_child[i][1], &write_fds);
+
             if (pipe_from_child[i][0] > max_fd) {
                 max_fd = pipe_from_child[i][0];
             }
+            if (pipe_to_child[i][1] > max_fd) {
+                max_fd = pipe_to_child[i][1];
+            }
         }
 
-        int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+        int activity = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
 
         if (activity == -1) {
             perror("select");
@@ -108,8 +109,8 @@ int main(int argc, char *argv[]) {
                         buff[bytes_read] = '\0';
                         fprintf(file, "PID: %d HASH: %s\n", pids[i], buff);
                         files_read++;
-
-                        // Asigna el siguiente archivo disponible al esclavo que acaba de terminar
+                    }
+                    if (FD_ISSET(pipe_to_child[i][1], &write_fds) ) {
                         if (files_processed < argc - 1) {
                             write(pipe_to_child[i][1], argv[files_processed + 1], strlen(argv[files_processed + 1]) + 1);
                             files_processed++;
@@ -120,17 +121,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-
     for (int i = 0; i < slaves; i++) {
         close(pipe_to_child[i][1]);
         close(pipe_from_child[i][0]);
     }
-
 
     if (fclose(file) != 0) {
         perror("Error closing file");
         return EXIT_FAILURE;
     }
 
+    return EXIT_SUCCESS;
 }
-   
