@@ -3,16 +3,16 @@
 #define MAX_PATH_SIZE 100
 #define MAX_MD5_SIZE 100
 
-// int pipe_read(int fd, char * buffer){
-//    int i = 0;
-//    char last_read[1];
-//    last_read[0] = 1;
-//    while(last_read[0] != 0 && last_read[0] != '\n' && read(fd, last_read, 1) > 0){
-//       buffer[i++] = last_read[0];
-//    }
-//    buffer[i] = 0;
-//    return i;
-// }
+int pipe_read(int fd, char * buffer){
+   int i = 0;
+   char last_read[1];
+   last_read[0] = 1;
+   while(last_read[0] != 0 && last_read[0] != '\n' && read(fd, last_read, 1) > 0){
+      buffer[i++] = last_read[0];
+   }
+   buffer[i] = 0;
+   return i;
+}
 //esto lo agrego post porque necesito una condicion para que el while corte
 
 
@@ -24,7 +24,7 @@ int main() {
     char md5[MAX_MD5_SIZE];
 
     while(pipe_read(STDIN_FILENO, path) > 0){       
-        printf("gay\n");     
+
         // lectura del pipe
         if (fgets(path, MAX_PATH_SIZE, stdin) == NULL) {
                 // revisa si no hay nada mas que leer o error
