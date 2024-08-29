@@ -1,19 +1,20 @@
 #include "shm_manager.h"
+#include "commons.h"
 
-void * init_shm(const char *name, size_t size, int *shm_fd, int mode)
+void * init_shm(const char *name, size_t size, int * shm_fd, int mode)
 {
     // crea la shared memory
-    shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
-    if (shm_fd == -1)
+    (*shm_fd) = shm_open(name, O_CREAT | O_RDWR, 0666);
+    if ((*shm_fd) == -1)
     {
         perror("shm_open");
-        exit(1);
+        exit(1); 
     }
 
     // Seteo la shm para que sea del size que quiero, si es el proceso md5
     if (mode > 0)
     {
-        if (ftruncate(shm_fd, size) == -1)
+        if (ftruncate(*shm_fd, size) == -1)
         {
             perror("ftruncate");
             exit(1);
@@ -21,7 +22,7 @@ void * init_shm(const char *name, size_t size, int *shm_fd, int mode)
     }
 
     // Mapeo la shared memory a menoria
-    void *ptr = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    void *ptr = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, *shm_fd, 0);
     if (ptr == MAP_FAILED)
     {
         perror("mmap");
@@ -59,10 +60,10 @@ void * init_semaphore(const char *sem_name){
     return sem;
 }
 
-void post_semaphore(void * ptr, struct file_info * file, sem_t * sem_name){
+void post_semaphore(void * ptr, char * md5, sem_t * sem_name){
 
     //Aca deberia escribir todo
-    
+    sprintf((char *)ptr, "%s", md5);
     //aviso que esta listo para ser leido
     sem_post(sem_name);
 }

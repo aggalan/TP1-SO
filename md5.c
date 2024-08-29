@@ -53,6 +53,8 @@ int main(int argc, char *argv[]) {
     }
 
     setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
+    void * semaphore = init_semaphore(sem_name);
+    void * shm = init_shm(shm_name, size, &shm_fd, 1);
 
     for (int i = 0; i < slaves; i++) {
         write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,files_to_process, FILES_PER_SLAVE);
@@ -85,7 +87,12 @@ int main(int argc, char *argv[]) {
             for (int i = 0; i < slaves; i++) {
                 if (FD_ISSET(pipe_from_child[i][0], &read_fds)) {
                     char buff[100];
-                    fprintf(file, "PID: %d HASH: %s\n", pids[i], read_from_pipe(pipe_from_child[i][0], buff));
+
+                    char * md5 = read_from_pipe(pipe_from_child[i][0], buff);
+            
+
+                    fprintf(file, "PID: %d HASH: %s\n", pids[i], md5);
+                    post_semaphore(shm, md5, semaphore);
                     files_read++;
                     if (FD_ISSET(pipe_to_child[i][1], &write_fds) ) {
                         if (files_processed < files_to_process) {

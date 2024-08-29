@@ -6,7 +6,7 @@
 #include <string.h>
 
 int main() {
-    
+
     int shm_fd;
     const char *shm_name = "/buffer";
     const char *sem_name = "/semaphore";
@@ -23,7 +23,6 @@ int main() {
 
     // Read from the shared memory
     printf("Message from shared memory: %s\n", (char *)ptr);
-
 
 
     }
