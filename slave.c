@@ -1,6 +1,6 @@
 #include "commons.h"
 #define MAX_CMD_SIZE 100
-#define MAX_PATH_SIZE 100
+#define MAX_PATH_SIZE 90
 #define MAX_MD5_SIZE 100
 
 int pipe_read(int fd, char * buffer);
