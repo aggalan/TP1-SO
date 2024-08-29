@@ -1,0 +1,29 @@
+# Ignore object files
+*.o
+
+# Ignore executable files
+slave
+md5
+view
+
+# Ignore other common build artifacts
+*.a
+*.out
+*.log
+*.tmp
+
+# Ignore configuration files and directories
+*.config
+config/
+
+# Ignore any temporary files created by the editor or IDE
+*~
+*.swp
+*.swo
+*.DS_Store
+*.idea/
+*.vscode/
+.bash_history
+
+# Ignore directory of generated files if any
+build/
