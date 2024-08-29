@@ -1,6 +1,9 @@
 #include "commons.h"
+#include "memory.h"
+#include "shm_manager.h"
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +16,12 @@ struct file_info {
     char md5[100];
     char filename[100];
 };
+
+int shm_fd;
+const char *shm_name = "/buffer";
+const char *sem_name = "/semaphore";
+size_t size = 4096;
+
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]);
 void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty);
 char * read_from_pipe(int fd, char * buff);
