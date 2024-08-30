@@ -15,8 +15,9 @@ sem_t *open_semaphores(const char *sem_name, int mode);
 char * init_shm(const char * shm_name, size_t size, int *shm_fd);
 
 int main(int argc, char *argv[]) {
-    sem_unlink("/SHM_MUTEX");
     sem_unlink("/SHM_SWITCH");
+    sem_unlink("/SHM_MUTEX");
+    
     int shm_fd;
     char shm_name[100] = {0};
     size_t size = 1048576;
@@ -33,7 +34,6 @@ int main(int argc, char *argv[]) {
             printf("ERROR");
             exit(1);
         }
-        printf("shm_name: %s\n", shm_name);
         shm = init_shm(shm_name, size, &shm_fd);
     }
     else{
@@ -42,8 +42,15 @@ int main(int argc, char *argv[]) {
 
     read_memory(sem_mutex, sem_switch, shm);
     close(shm_fd);
-    sem_close(sem_mutex);
-    sem_close(sem_switch);
+    if(sem_close(sem_mutex) == -1){
+        perror("sem_close_MUTEX_VIEW");
+        exit(EXIT_FAILURE);
+    }
+    if(sem_close(sem_switch) == -1){
+        perror("sem_close_switch_view");
+        exit(EXIT_FAILURE);
+    }
+
 
     return 0;
 }
@@ -92,7 +99,7 @@ sem_t * open_semaphores(const char *sem_name, int mode){
 }
 
 char * init_shm(const char * shm_name, size_t size, int *shm_fd){
-*shm_fd = shm_open(shm_name, O_RDWR, 0666);
+    *shm_fd = shm_open(shm_name, O_RDWR, 0666);
     if ((*shm_fd) == -1) {
         perror("shm_open_VIEW");
         exit(EXIT_FAILURE);

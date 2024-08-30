@@ -12,17 +12,11 @@
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define NAME "/buffer"
-struct file_info
-{
-    pid_t pid;
-    char md5[100];
-    char filename[100];
-};
 
-int shm_fd;
+
 size_t size = 1048576;
 
-void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]);
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd);
 void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
 char *read_from_pipe(int fd, char *buff);
 int pipe_read(int fd, char *buffer);
@@ -30,6 +24,23 @@ int pipe_read(int fd, char *buffer);
 int main(int argc, char *argv[])
 {
 
+    int view_opened = 0;
+    int slaves = 2;
+    int files_to_process = argc - 1;
+    int files_processed = 0, files_read = 0;
+    int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
+    pid_t pids[slaves];
+    int info_length = strlen("HASH MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
+    const char *filename = "results.txt";
+    FILE *file = fopen(filename, "wr");
+    int shm_fd;
+
+    if (file == NULL)
+    {
+        perror("Error opening file");
+        return EXIT_FAILURE;
+    }
+    
     if (!isatty(STDOUT_FILENO))
     {
         write(STDOUT_FILENO, NAME, strlen(NAME) + 1);
@@ -46,27 +57,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    int view_opened = 0;
-    int slaves = 2;
-    int files_to_process = argc - 1;
-
-    int files_processed = 0, files_read = 0;
-    int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
-
-    pid_t pids[slaves];
-
-    int info_length = strlen("HASH MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
-
-    const char *filename = "results.txt";
-    FILE *file = fopen(filename, "wr");
-
-    if (file == NULL)
-    {
-        perror("Error opening file");
-        return EXIT_FAILURE;
-    }
-
-    shm_fd = shm_open(NAME, O_CREAT | O_RDWR, 0666);
+    shm_fd = shm_open(NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
     if (shm_fd == -1)
     {
         perror("shm_open_MD5");
@@ -79,16 +70,21 @@ int main(int argc, char *argv[])
         perror("mmap");
         exit(EXIT_FAILURE);
     }
-    sem_t *sem_switch = sem_open("/SHM_SWITCH", 0);
-    if (sem_switch != SEM_FAILED)
-    {
-        view_opened++;
-    }
+
+    sleep(2);
+
     sem_t *sem_mutex = sem_open("/SHM_MUTEX", 1);
     if (sem_mutex != SEM_FAILED)
     {
         view_opened++;
     }
+
+    sem_t *sem_switch = sem_open("/SHM_SWITCH", 0);
+    if (sem_switch != SEM_FAILED)
+    {
+        view_opened++;
+    }
+    
 
     if (view_opened == 1)
     {
@@ -104,8 +100,8 @@ int main(int argc, char *argv[])
         perror("ftruncate");
         exit(EXIT_FAILURE);
     }
-    sleep(10);
-    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
+
+    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids, &shm_fd);
 
     for (int i = 0; i < slaves; i++)
     {
@@ -183,12 +179,13 @@ int main(int argc, char *argv[])
         close(pipe_to_child[i][1]);
         close(pipe_from_child[i][0]);
     }
-    fprintf(file, "LLEGUE HASTA ACA\n");
+
     if (fclose(file) != 0)
     {
         perror("Error closing file");
         return EXIT_FAILURE;
     }
+    //este chequeo de error no va, excepto que haya entrado a view
 
     sem_close(sem_mutex);
     sem_unlink("/SHM_MUTEX");
@@ -197,10 +194,11 @@ int main(int argc, char *argv[])
     shm_unlink(NAME);
     close(shm_fd);
 
+
     return EXIT_SUCCESS;
 }
 
-void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[])
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd)
 {
     for (int i = 0; i < slaves; i++)
     {
@@ -218,6 +216,7 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
 
             dup2(pipe_to_child[i][0], STDIN_FILENO);
             close(pipe_to_child[i][0]);
+            close(*shm_fd);
 
             dup2(pipe_from_child[i][1], STDOUT_FILENO);
             close(pipe_from_child[i][1]);
