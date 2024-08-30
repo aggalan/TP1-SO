@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500
 EXECUTABLES = slave md5 view
-OBJECTS = slave.o md5.o view.o shm_manager.o
+OBJECTS = slave.o md5.o view.o
 
 # Regla principal para construir ambos ejecutables
 all: $(EXECUTABLES)
@@ -14,11 +14,11 @@ slave: slave.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Regla para construir el ejecutable md5
-md5: md5.o  shm_manager.o
+md5: md5.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Regla para construir el ejecutable view
-view: view.o shm_manager.o
+view: view.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Regla para construir el archivo objeto slave.o desde slave.c
@@ -31,14 +31,6 @@ md5.o: md5.c
 
 # Regla para construir el archivo objeto view.o desde view.c
 view.o: view.c 
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Regla para construir el archivo objeto shm_manager.o desde shm_manager.c
-shm_manager.o: shm_manager.c 
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Regla para construir el archivo objeto pipe_master.o desde pipe_master.c
-pipe_master.o: pipe_master.c 
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Regla para eliminar los archivos objeto

@@ -1,6 +1,5 @@
 #include "commons.h"
 #include "memory.h"
-#include "shm_manager.h"
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <string.h>
@@ -10,121 +9,209 @@
 #include <string.h>
 
 #define FILES_PER_SLAVE 2
-
-struct file_info {
+#define MAX_MD5 32
+#define MAX_PATH 128
+#define NAME "/buffer"
+struct file_info
+{
     pid_t pid;
     char md5[100];
     char filename[100];
 };
 
 int shm_fd;
-const char *shm_name = "/buffer";
-const char *sem_name = "/semaphore";
-size_t size = 4096;
+size_t size = 1048576;
 
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]);
-void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty);
-char * read_from_pipe(int fd, char * buff);
+void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
+char *read_from_pipe(int fd, char *buff);
+int pipe_read(int fd, char *buffer);
 
+int main(int argc, char *argv[])
+{
 
+    if (!isatty(STDOUT_FILENO))
+    {
+        write(STDOUT_FILENO, NAME, strlen(NAME) + 1);
+    }
+    else
+    {
+        printf("%s\n", NAME);
+        fflush(stdout);
+    }
 
-
-
-int main(int argc, char *argv[]) {
-    
-    if (argc < 2) {
+    if (argc < 2)
+    {
         fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
+    int view_opened = 0;
     int slaves = 2;
     int files_to_process = argc - 1;
+
     int files_processed = 0, files_read = 0;
-    int max_fd = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
+
     pid_t pids[slaves];
 
-    const char *filename = "results.txt";
-    FILE *file = fopen(filename, "w");
+    int info_length = strlen("HASH MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
 
-    if (file == NULL) {
+    const char *filename = "results.txt";
+    FILE *file = fopen(filename, "wr");
+
+    if (file == NULL)
+    {
         perror("Error opening file");
         return EXIT_FAILURE;
     }
 
-    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
-    void * semaphore = init_semaphore(sem_name);
-    void * shm = init_shm(shm_name, size, &shm_fd, 1);
-
-    for (int i = 0; i < slaves; i++) {
-        write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,files_to_process, FILES_PER_SLAVE);
+    shm_fd = shm_open(NAME, O_CREAT | O_RDWR, 0666);
+    if (shm_fd == -1)
+    {
+        perror("shm_open_MD5");
+        exit(EXIT_FAILURE);
     }
 
-    while (files_read < files_to_process) {
-    fd_set read_fds, write_fds;
+    char *shm = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (shm == MAP_FAILED)
+    {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+    sem_t *sem_switch = sem_open("/SHM_SWITCH", 0);
+    if (sem_switch != SEM_FAILED)
+    {
+        view_opened++;
+    }
+    sem_t *sem_mutex = sem_open("/SHM_MUTEX", 1);
+    if (sem_mutex != SEM_FAILED)
+    {
+        view_opened++;
+    }
+
+    if (view_opened == 1)
+    {
+        perror("ERROR; MISSING 1 SEMAPHORE");
+        exit(1);
+    }
+    else if (view_opened == 0)
+    {
+        printf("NO VIEW OPENED\n");
+    }
+    if (ftruncate(shm_fd, size) == -1)
+    {
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
+    sleep(10);
+    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids);
+
+    for (int i = 0; i < slaves; i++)
+    {
+        write_to_pipe(pipe_to_child[i][1], argv, &files_processed, files_to_process, FILES_PER_SLAVE);
+    }
+
+    while (files_read < files_to_process)
+    {
+
+        fd_set read_fds, write_fds;
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
-        max_fd = 0;
+        int max_fd = -1;
+        int max_wd = -1;
 
-        for (int i = 0; i < slaves; i++) {
+        for (int i = 0; i < slaves; i++)
+        {
             FD_SET(pipe_from_child[i][0], &read_fds);
             FD_SET(pipe_to_child[i][1], &write_fds);
 
-            if (pipe_from_child[i][0] > max_fd) {
+            if (pipe_from_child[i][0] > max_fd)
+            {
                 max_fd = pipe_from_child[i][0];
             }
-            if (pipe_to_child[i][1] > max_fd) {
-                max_fd = pipe_to_child[i][1];
+            if (pipe_to_child[i][1] > max_wd)
+            {
+                max_wd = pipe_to_child[i][1];
             }
         }
 
-        int activity = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
+        select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+        select(max_wd + 1, NULL, &write_fds, NULL, NULL);
 
-        if (activity == -1) {
-            perror("select");
-            exit(EXIT_FAILURE);
-        } else if (activity > 0) {
-            for (int i = 0; i < slaves; i++) {
-                if (FD_ISSET(pipe_from_child[i][0], &read_fds)) {
-                    char buff[100];
+        if (view_opened == 2)
+        {
 
-                    char * md5 = read_from_pipe(pipe_from_child[i][0], buff);
-            
+            sem_wait(sem_mutex);
+        }
+        for (int i = 0; i < slaves; i++)
+        {
 
-                    fprintf(file, "PID: %d HASH: %s\n", pids[i], md5);
-                    post_semaphore(shm, md5, semaphore);
-                    files_read++;
-                    if (FD_ISSET(pipe_to_child[i][1], &write_fds) ) {
-                        if (files_processed < files_to_process) {
-                            write_to_pipe(pipe_to_child[i][1], argv, &files_processed ,files_to_process, 1);
-                        }
-                    }
+            if (FD_ISSET(pipe_from_child[i][0], &read_fds))
+            {
+                char md5[300] = {0};
+                pipe_read(pipe_from_child[i][0], md5);
+                fprintf(file, "HASH MD5: %s - PID %d\n", md5, pids[i]);
+                fflush(file);
+                sprintf(shm + files_read * info_length, "HASH MD5: %s - PID %d\n", md5, pids[i]);
+                if (view_opened == 2)
+                {
+
+                    sem_post(sem_switch);
+                    sem_post(sem_mutex);
                 }
+
+                if (files_processed < files_to_process && FD_ISSET(pipe_to_child[i][1], &write_fds))
+                {
+                    write_to_pipe(pipe_to_child[i][1], argv, &files_processed, files_to_process, 1);
+                }
+
+                files_read++;
             }
         }
     }
+    if (view_opened == 2)
+    {
+        sem_wait(sem_mutex);
+        sprintf(shm + files_read * info_length, "\t");
+        sem_post(sem_mutex);
+        sem_post(sem_switch);
+    }
 
-    for (int i = 0; i < slaves; i++) {
+    for (int i = 0; i < slaves; i++)
+    {
         close(pipe_to_child[i][1]);
         close(pipe_from_child[i][0]);
     }
-
-    if (fclose(file) != 0) {
+    fprintf(file, "LLEGUE HASTA ACA\n");
+    if (fclose(file) != 0)
+    {
         perror("Error closing file");
         return EXIT_FAILURE;
     }
 
+    sem_close(sem_mutex);
+    sem_unlink("/SHM_MUTEX");
+    sem_close(sem_switch);
+    sem_unlink("/SHM_SWITCH");
+    shm_unlink(NAME);
+    close(shm_fd);
+
     return EXIT_SUCCESS;
 }
 
-void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[]) {
-    for (int i = 0; i < slaves; i++) { 
-        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1) {
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[])
+{
+    for (int i = 0; i < slaves; i++)
+    {
+        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1)
+        {
             perror("pipe");
             exit(EXIT_FAILURE);
         }
-    
-        if ((pids[i] = fork()) == 0) {
+
+        if ((pids[i] = fork()) == 0)
+        {
             // Proceso hijo
             close(pipe_to_child[i][1]);
             close(pipe_from_child[i][0]);
@@ -141,30 +228,53 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
             exit(EXIT_FAILURE);
         }
         // Proceso padre
-        close(pipe_to_child[i][0]); 
-        close(pipe_from_child[i][1]); 
+        close(pipe_to_child[i][0]);
+        close(pipe_from_child[i][1]);
     }
 }
-void write_to_pipe(int fd, char ** argv, int *files_processed, int total_files, int qty) {
-    for (int i = 0; i < qty; i++) {
-        if ((*files_processed) < total_files) {
+void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty)
+{
+    for (int i = 0; i < qty; i++)
+    {
+        if ((*files_processed) < total_files)
+        {
             int bytes_written = write(fd, argv[*files_processed + 1], strlen(argv[(*files_processed) + 1]) + 1);
-            if (bytes_written < 0) {
+            if (bytes_written < 0)
+            {
                 perror("write pipe");
                 exit(EXIT_FAILURE);
             }
             (*files_processed)++;
-        } else {
+        }
+        else
+        {
             break;
         }
     }
 }
 
-char * read_from_pipe(int fd, char * buff) {
+char *read_from_pipe(int fd, char *buff)
+{
     int bytes_read = read(fd, buff, 100);
-    if (bytes_read < 0) {
+    if (bytes_read < 0)
+    {
         perror("read pipe");
         exit(EXIT_FAILURE);
     }
     return buff;
+}
+
+int pipe_read(int fd, char *buff)
+{
+    int i = 0;
+    char last_charater_read[1];
+    last_charater_read[0] = 1;
+
+    while (last_charater_read[0] != 0 && last_charater_read[0] != '\n' && read(fd, last_charater_read, 1) > 0)
+    {
+        buff[i++] = last_charater_read[0];
+    }
+    buff[i] = 0;
+
+    return i;
 }

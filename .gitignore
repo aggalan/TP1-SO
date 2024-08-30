@@ -24,6 +24,7 @@ config/
 *.idea/
 *.vscode/
 .bash_history
+results.txt
 
 # Ignore directory of generated files if any
 build/
