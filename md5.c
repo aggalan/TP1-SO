@@ -33,6 +33,14 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (shm_fd == -1)
+    {
+        perror("shm_open_MD5");
+        exit(EXIT_FAILURE);
+    }
+
+
     if (!isatty(STDOUT_FILENO))
     {
         write(STDOUT_FILENO, SHM_NAME, strlen(SHM_NAME) + 1);
@@ -41,13 +49,6 @@ int main(int argc, char *argv[])
     {
         printf("%s\n", SHM_NAME);
         fflush(stdout);
-    }
-
-    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (shm_fd == -1)
-    {
-        perror("shm_open_MD5");
-        exit(EXIT_FAILURE);
     }
 
 
