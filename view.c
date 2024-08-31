@@ -15,15 +15,15 @@ sem_t *open_semaphores(const char *sem_name, int mode);
 char * init_shm(const char * shm_name, size_t size, int *shm_fd);
 
 int main(int argc, char *argv[]) {
-    sem_unlink("/SHM_SWITCH");
-    sem_unlink("/SHM_MUTEX");
+    sem_unlink(SEM_SWITCH_NAME);
+    sem_unlink(SEM_MUTEX_NAME);
     
     int shm_fd;
-    char shm_name[100] = {0};
+    char shm_name[MAX_PATH] = {0};
     size_t size = 1048576;
     char * shm;
-    sem_t * sem_mutex = open_semaphores("/SHM_MUTEX", 1);
-    sem_t * sem_switch = open_semaphores("/SHM_SWITCH", 0);
+    sem_t * sem_mutex = open_semaphores(SEM_MUTEX_NAME, 1);
+    sem_t * sem_switch = open_semaphores(SEM_SWITCH_NAME, 0);
 
 
 

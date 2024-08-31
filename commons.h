@@ -6,4 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#define MAX_MD5 35
+#define MAX_PATH 128
+
 #endif

@@ -1,16 +1,14 @@
 #include "commons.h"
-#define MAX_PATH_SIZE 128
-#define MAX_MD5_SIZE 35
 #define OFFSET 3
 
 int pipe_read(int fd, char * buffer);
 
 int main() {
     
-    char path[MAX_PATH_SIZE] = {0};
+    char path[MAX_PATH] = {0};
     char * md5sum = "md5sum %s";
-    char command[MAX_PATH_SIZE+strlen(md5sum)];
-    char md5[MAX_MD5_SIZE+MAX_PATH_SIZE+OFFSET];
+    char command[MAX_PATH+strlen(md5sum)];
+    char md5[MAX_MD5+MAX_PATH+OFFSET];
 
     while(pipe_read(STDIN_FILENO, path) > 0){       
         
@@ -27,7 +25,7 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        fgets(md5, MAX_MD5_SIZE+strlen(path), log);
+        fgets(md5, MAX_MD5+strlen(path), log);
 
         //Cierro
         pclose(log);

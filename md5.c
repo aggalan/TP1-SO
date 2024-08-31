@@ -9,9 +9,7 @@
 #include <string.h>
 
 #define FILES_PER_SLAVE 2
-#define MAX_MD5 32
-#define MAX_PATH 128
-#define NAME "/buffer"
+
 
 
 size_t size = 1048576;
@@ -30,24 +28,24 @@ int main(int argc, char *argv[])
     int files_processed = 0, files_read = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
     pid_t pids[slaves];
-    int info_length = strlen("HASH MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
-    const char *filename = "results.txt";
-    FILE *file = fopen(filename, "wr");
+    int info_length = strlen("MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
     int shm_fd;
 
-    if (file == NULL)
+    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (shm_fd == -1)
     {
-        perror("Error opening file");
-        return EXIT_FAILURE;
+        perror("shm_open_MD5");
+        exit(EXIT_FAILURE);
     }
-    
+
+
     if (!isatty(STDOUT_FILENO))
     {
-        write(STDOUT_FILENO, NAME, strlen(NAME) + 1);
+        write(STDOUT_FILENO, SHM_NAME, strlen(SHM_NAME) + 1);
     }
     else
     {
-        printf("%s\n", NAME);
+        printf("%s\n", SHM_NAME);
         fflush(stdout);
     }
 
@@ -57,12 +55,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    shm_fd = shm_open(NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (shm_fd == -1)
-    {
-        perror("shm_open_MD5");
-        exit(EXIT_FAILURE);
-    }
 
     char *shm = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (shm == MAP_FAILED)
@@ -71,7 +63,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    sleep(2);
+    sleep(2); //Le doy tiempo al view para que abra la shared memory y cree los semaforos
 
     sem_t *sem_mutex = sem_open("/SHM_MUTEX", 1);
     if (sem_mutex != SEM_FAILED)
@@ -100,6 +92,15 @@ int main(int argc, char *argv[])
         perror("ftruncate");
         exit(EXIT_FAILURE);
     }
+
+    const char *filename = "results.txt";
+    FILE *file = fopen(filename, "wr");
+    if (file == NULL)
+    {
+        perror("Error opening file");
+        return EXIT_FAILURE;
+    }
+    
 
     setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids, &shm_fd);
 
@@ -145,11 +146,11 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(pipe_from_child[i][0], &read_fds))
             {
-                char md5[300] = {0};
+                char md5[MAX_MD5 + MAX_PATH + 6] = {0};
                 pipe_read(pipe_from_child[i][0], md5);
-                fprintf(file, "HASH MD5: %s - PID %d\n", md5, pids[i]);
+                fprintf(file, "MD5: %s - PID %d\n", md5, pids[i]);
                 fflush(file);
-                sprintf(shm + files_read * info_length, "HASH MD5: %s - PID %d\n", md5, pids[i]);
+                sprintf(shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
                 if (view_opened == 2)
                 {
 
@@ -185,13 +186,12 @@ int main(int argc, char *argv[])
         perror("Error closing file");
         return EXIT_FAILURE;
     }
-    //este chequeo de error no va, excepto que haya entrado a view
 
     sem_close(sem_mutex);
     sem_unlink("/SHM_MUTEX");
     sem_close(sem_switch);
     sem_unlink("/SHM_SWITCH");
-    shm_unlink(NAME);
+    shm_unlink(SHM_NAME);
     close(shm_fd);
 
 
