@@ -60,13 +60,13 @@ int main(int argc, char *argv[])
 
     sleep(2); //Le doy tiempo al view para que abra la shared memory y cree los semaforos
 
-    sem_t *sem_mutex = sem_open("/SHM_MUTEX", 1);
+    sem_t *sem_mutex = sem_open(SEM_MUTEX_NAME, 1);
     if (sem_mutex != SEM_FAILED)
     {
         view_opened++;
     }
 
-    sem_t *sem_switch = sem_open("/SHM_SWITCH", 0);
+    sem_t *sem_switch = sem_open(SEM_SWITCH_NAME, 0);
     if (sem_switch != SEM_FAILED)
     {
         view_opened++;
@@ -133,7 +133,6 @@ int main(int argc, char *argv[])
 
         if (view_opened == 2)
         {
-
             sem_wait(sem_mutex);
         }
         for (int i = 0; i < slaves; i++)
@@ -148,7 +147,6 @@ int main(int argc, char *argv[])
                 sprintf(shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
                 if (view_opened == 2)
                 {
-
                     sem_post(sem_switch);
                     sem_post(sem_mutex);
                 }

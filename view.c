@@ -99,7 +99,7 @@ sem_t * open_semaphores(const char *sem_name, int mode){
 }
 
 char * init_shm(const char * shm_name, size_t size, int *shm_fd){
-    *shm_fd = shm_open(shm_name, O_RDWR, 0666);
+    *shm_fd = shm_open(shm_name, O_CREAT | O_RDWR, 0666);
     if ((*shm_fd) == -1) {
         perror("shm_open_VIEW");
         exit(EXIT_FAILURE);
