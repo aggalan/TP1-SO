@@ -9,9 +9,6 @@
 #include <string.h>
 
 #define FILES_PER_SLAVE 2
-
-
-
 size_t size = 1048576;
 
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd);
@@ -21,9 +18,8 @@ int pipe_read(int fd, char *buffer);
 
 int main(int argc, char *argv[])
 {
-
     int view_opened = 0;
-    int slaves = 2;
+    int slaves = 5;
     int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
@@ -31,13 +27,11 @@ int main(int argc, char *argv[])
     int info_length = strlen("MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
     int shm_fd;
 
-    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (shm_fd == -1)
+    if (argc < 2)
     {
-        perror("shm_open_MD5");
+        fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-
 
     if (!isatty(STDOUT_FILENO))
     {
@@ -49,9 +43,10 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    if (argc < 2)
+    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (shm_fd == -1)
     {
-        fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
+        perror("shm_open_MD5");
         exit(EXIT_FAILURE);
     }
 
@@ -188,9 +183,9 @@ int main(int argc, char *argv[])
     }
 
     sem_close(sem_mutex);
-    sem_unlink("/SHM_MUTEX");
+    sem_unlink(SEM_MUTEX_NAME);
     sem_close(sem_switch);
-    sem_unlink("/SHM_SWITCH");
+    sem_unlink(SEM_SWITCH_NAME);
     shm_unlink(SHM_NAME);
     close(shm_fd);
 
