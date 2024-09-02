@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "commons.h"
 #include "memory.h"
 #include <sys/wait.h>
@@ -8,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FILES_PER_SLAVE 2
 size_t size = 1048576;
 
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd);
@@ -19,13 +20,16 @@ int pipe_read(int fd, char *buffer);
 int main(int argc, char *argv[])
 {
     int view_opened = 0;
-    int slaves = ((argc-1) > 20)? (argc-1)/10 : 2;
+    int slaves = ((argc-1) > 20)? ((argc-1)/10) : 2;
+    int initial_files_per_slave =  ((argc-1)/10/slaves>1) ? (((argc - 1)/10/(slaves))) : 1;
+
     int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
     pid_t pids[slaves];
     int info_length = strlen("MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
     int shm_fd;
+
 
     if (argc < 2)
     {
@@ -62,7 +66,7 @@ int main(int argc, char *argv[])
     sleep(2); //Le doy tiempo al view para que abra la shared memory y cree los semaforos
 
     sem_t *sem_mutex = sem_open(SEM_MUTEX_NAME, 1);
-    if (sem_mutex != SEM_FAILED)
+    if (sem_mutex != SEM_FAILED )
     {
         view_opened++;
     }
@@ -90,7 +94,7 @@ int main(int argc, char *argv[])
     }
 
     const char *filename = "results.txt";
-    FILE *file = fopen(filename, "wr");
+    FILE *file = fopen(filename, "w");
     if (file == NULL)
     {
         perror("Error opening file");
@@ -102,7 +106,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < slaves; i++)
     {
-        write_to_pipe(pipe_to_child[i][1], argv, &files_processed, files_to_process, FILES_PER_SLAVE);
+        write_to_pipe(pipe_to_child[i][1], argv, &files_processed, files_to_process, initial_files_per_slave);
     }
 
     while (files_read < files_to_process)
@@ -167,6 +171,8 @@ int main(int argc, char *argv[])
         sprintf(shm + files_read * info_length, "\t");
         sem_post(sem_mutex);
         sem_post(sem_switch);
+        sem_close(sem_mutex);
+        sem_close(sem_switch);
     }
 
     for (int i = 0; i < slaves; i++)
@@ -181,9 +187,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    sem_close(sem_mutex);
+
     sem_unlink(SEM_MUTEX_NAME);
-    sem_close(sem_switch);
     sem_unlink(SEM_SWITCH_NAME);
     shm_unlink(SHM_NAME);
     close(shm_fd);
