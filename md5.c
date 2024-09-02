@@ -19,7 +19,7 @@ int pipe_read(int fd, char *buffer);
 int main(int argc, char *argv[])
 {
     int view_opened = 0;
-    int slaves = 5;
+    int slaves = ((argc-1) > 20)? (argc-1)/10 : 2;
     int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
