@@ -200,16 +200,11 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
         }
 
 
-        for (int j = 0; j < i; j++) {
-            //cierro los pipes de procesos hermanos existentes
-            close(pipe_to_child[j][0]);
-            close(pipe_to_child[j][1]);
-            close(pipe_from_child[j][0]);
-            close(pipe_from_child[j][1]);
-        }
+
 
         if ((pids[i] = fork()) == 0)
         {
+
             // Proceso hijo
             close(pipe_to_child[i][1]);
             close(pipe_from_child[i][0]);
@@ -220,6 +215,15 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
 
             dup2(pipe_from_child[i][1], STDOUT_FILENO);
             close(pipe_from_child[i][1]);
+
+            for (int j = 0; j < i; j++)
+            {
+                for(int k = 0; k < 2; k++)
+                {
+                    close(pipe_to_child[j][k]);
+                    close(pipe_from_child[j][k]);
+                }
+            }
 
             char *args[] = {"./slave", NULL};
             execve(args[0], args, NULL);
