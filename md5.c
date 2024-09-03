@@ -116,7 +116,6 @@ int main(int argc, char *argv[])
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
         int max_fd = -1;
-        int max_wd = -1;
 
         for (int i = 0; i < slaves; i++)
         {
@@ -127,14 +126,9 @@ int main(int argc, char *argv[])
             {
                 max_fd = pipe_from_child[i][0];
             }
-            if (pipe_to_child[i][1] > max_wd)
-            {
-                max_wd = pipe_to_child[i][1];
-            }
         }
 
         select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-        select(max_wd + 1, NULL, &write_fds, NULL, NULL);
 
         if (view_opened == 2)
         {
@@ -156,7 +150,7 @@ int main(int argc, char *argv[])
                     sem_post(sem_mutex);
                 }
 
-                if (files_processed < files_to_process && FD_ISSET(pipe_to_child[i][1], &write_fds))
+                if (files_processed < files_to_process)
                 {
                     write_to_pipe(pipe_to_child[i][1], argv, &files_processed, files_to_process, 1);
                 }
@@ -205,6 +199,15 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
         {
             perror("pipe");
             exit(EXIT_FAILURE);
+        }
+
+
+        for (int j = 0; j < i; j++) {
+            //cierro los pipes de procesos hermanos existentes
+            close(pipe_to_child[j][0]);
+            close(pipe_to_child[j][1]);
+            close(pipe_from_child[j][0]);
+            close(pipe_from_child[j][1]);
         }
 
         if ((pids[i] = fork()) == 0)
