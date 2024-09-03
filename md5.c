@@ -112,15 +112,13 @@ int main(int argc, char *argv[])
     while (files_read < files_to_process)
     {
 
-        fd_set read_fds, write_fds;
+        fd_set read_fds;
         FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
         int max_fd = -1;
 
         for (int i = 0; i < slaves; i++)
         {
             FD_SET(pipe_from_child[i][0], &read_fds);
-            FD_SET(pipe_to_child[i][1], &write_fds);
 
             if (pipe_from_child[i][0] > max_fd)
             {
