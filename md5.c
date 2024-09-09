@@ -14,7 +14,6 @@ size_t size = 1048576;
 
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd);
 void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
-char *read_from_pipe(int fd, char *buff);
 int pipe_read(int fd, char *buffer);
 
 int main(int argc, char *argv[])
@@ -256,16 +255,6 @@ void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, i
     }
 }
 
-char *read_from_pipe(int fd, char *buff)
-{
-    int bytes_read = read(fd, buff, 100);
-    if (bytes_read < 0)
-    {
-        perror("read pipe");
-        exit(EXIT_FAILURE);
-    }
-    return buff;
-}
 
 int pipe_read(int fd, char *buff)
 {
