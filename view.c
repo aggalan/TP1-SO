@@ -12,7 +12,6 @@
 #include <semaphore.h>
 
 int pipe_read(int fd, char *buffer);
-void read_memory(sem_t *sem_mutex, sem_t *sem_switch, char *shm);
 sem_t *open_semaphores(const char *sem_name, int mode);
 char *init_shm(const char *shm_name, size_t size, int *shm_fd);
 
