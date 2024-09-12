@@ -10,7 +10,7 @@
 #define SHM_NAME "/buffer"
 #define SIZE 1048576
 
-typedef struct memoryADT
+typedef struct memory_adt
 {
     char *shm;
     sem_t *sem_mutex;
