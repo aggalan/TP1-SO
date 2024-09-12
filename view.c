@@ -19,7 +19,7 @@ char *init_shm(const char *shm_name, size_t size, int *shm_fd);
 int main(int argc, char *argv[])
 {
 
-    memoryADT adt = {0};
+    memory_adt adt = {0};
 
     sem_unlink(SEM_SWITCH_NAME);
     sem_unlink(SEM_MUTEX_NAME);
@@ -34,29 +34,29 @@ int main(int argc, char *argv[])
             printf("ERROR");
             exit(1);
         }
-        initializeResources(&adt, shm_name, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
+        initialize_resources(&adt, shm_name, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
     else
     {
-        initializeResources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
+        initialize_resources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
 
 
-    openResources(&adt);
+    open_resources(&adt);
 
     int index = 0;
     int status = 0;
 
     while (1)
     {
-        readMemory(&adt, &index, &status);
+        read_memory(&adt, &index, &status);
         if (status)
         {
             break;
         }
     }
 
-    closeResources(&adt);
+    close_resources(&adt);
 
     return 0;
 }

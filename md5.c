@@ -16,9 +16,9 @@ int pipe_read(int fd, char *buffer);
 
 int main(int argc, char *argv[])
 {
-    memoryADT adt = {0};
-    int slaves = ((argc - 1) > 20) ? ((argc - 1) / 10) : 2;
-    int initial_files_per_slave = ((argc - 1) / 10 / slaves > 1) ? (((argc - 1) / 10 / (slaves))) : 1;
+    memory_adt adt = {0};
+    int slaves = ((argc - 1) > 20) ? ((argc - 1) / 10) : ((argc -1) > 1 ? 2 : 1);
+    int initial_files_per_slave = ((argc - 1) /50 > 0) ? ((argc - 1) / 50) : 1;
 
     int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    startResources(&adt, SHM_NAME, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
+    start_resources(&adt, SHM_NAME, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
 
     const char *filename = "results.txt";
     FILE *file = fopen(filename, "w");

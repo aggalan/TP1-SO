@@ -10,14 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-void startResources(memoryADT *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size)
+void start_resources(memory_adt *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size)
 {
-    initializeResources(adt, shm_name, sem_mutex_name, sem_switch_name, size);
-    unlinkResources(adt);
-    createResources(adt);
+    initialize_resources(adt, shm_name, sem_mutex_name, sem_switch_name, size);
+    unlink_resources(adt);
+    create_resources(adt);
 }
 
-void initializeResources(memoryADT *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size)
+void initialize_resources(memory_adt *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size)
 {
     adt->shm_name = shm_name;
     adt->sem_mutex_name = sem_mutex_name;
@@ -25,7 +25,7 @@ void initializeResources(memoryADT *adt, char *shm_name, char *sem_mutex_name, c
     adt->size = size;
 }
 
-void createResources(memoryADT *adt)
+void create_resources(memory_adt *adt)
 {
 
     if ((adt->shm = mmap(NULL, adt->size, PROT_READ | PROT_WRITE, MAP_SHARED, adt->shm_fd, 0)) == MAP_FAILED)
@@ -64,7 +64,7 @@ void createResources(memoryADT *adt)
     }
 }
 
-void openResources(memoryADT *adt)
+void open_resources(memory_adt *adt)
 {
 
     if ((adt->shm_fd = shm_open(adt->shm_name, O_RDWR, 0666)) < 0)
@@ -94,21 +94,21 @@ void openResources(memoryADT *adt)
     printf("VIEW OPENED\n");
 }
 
-void unlinkResources(memoryADT *adt)
+void unlink_resources(memory_adt *adt)
 {
     sem_unlink(adt->sem_mutex_name);
     sem_unlink(adt->sem_switch_name);
 
 }
 
-void closeResources(memoryADT *adt)
+void close_resources(memory_adt *adt)
 {
     sem_close(adt->sem_mutex);
     sem_close(adt->sem_switch);
     close(adt->shm_fd);
 }
 
-void readMemory(memoryADT *adt, int *index, int *status)
+void read_memory(memory_adt *adt, int *index, int *status)
 {
     sem_wait(adt->sem_switch);
     sem_wait(adt->sem_mutex);

@@ -22,21 +22,21 @@ typedef struct memoryADT
     char *sem_switch_name;
     int view_opened;
 
-} memoryADT;
+} memory_adt;
 
-void startResources(memoryADT *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size);
+void start_resources(memory_adt *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size);
 
-void initializeResources(memoryADT *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size);
+void initialize_resources(memory_adt *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size);
 
-void createResources(memoryADT *adt);
+void create_resources(memory_adt *adt);
 
-void openResources(memoryADT *adt);
+void open_resources(memory_adt *adt);
 
 // quizas no hace falta
-void unlinkResources(memoryADT *adt);
+void unlink_resources(memory_adt *adt);
 
-void closeResources(memoryADT *adt);
+void close_resources(memory_adt *adt);
 
-void readMemory(memoryADT *adt, int *index, int *status);
+void read_memory(memory_adt *adt, int *index, int *status);
 
 #endif
