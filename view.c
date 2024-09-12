@@ -23,13 +23,7 @@ int main(int argc, char *argv[])
 
     sem_unlink(SEM_SWITCH_NAME);
     sem_unlink(SEM_MUTEX_NAME);
-
-    // int shm_fd;
     char shm_name[MAX_PATH] = {0};
-    // size_t size = 1048576;
-    // char * shm;
-    // sem_t * sem_mutex = open_semaphores(SEM_MUTEX_NAME, 1);
-    // sem_t * sem_switch = open_semaphores(SEM_SWITCH_NAME, 0);
 
     if (argc < 2)
     {
@@ -47,7 +41,7 @@ int main(int argc, char *argv[])
         initializeResources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
 
-    // unlinkResources(&adt);
+
     openResources(&adt);
 
     int index = 0;
@@ -63,16 +57,6 @@ int main(int argc, char *argv[])
     }
 
     closeResources(&adt);
-
-    // close(shm_fd);
-    // if(sem_close(sem_mutex) == -1){
-    //     perror("sem_close_MUTEX_VIEW");
-    //     exit(EXIT_FAILURE);
-    // }
-    // if(sem_close(sem_switch) == -1){
-    //     perror("sem_close_switch_view");
-    //     exit(EXIT_FAILURE);
-    // }
 
     return 0;
 }

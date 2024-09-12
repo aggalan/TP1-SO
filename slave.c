@@ -34,10 +34,8 @@ int main()
 
         fgets(md5, MAX_MD5 + strlen(path), log);
 
-        // Cierro
         pclose(log);
 
-        // Escribo en el pipe
         write(STDOUT_FILENO, md5, strlen(md5) + 1);
     }
     close(STDOUT_FILENO);

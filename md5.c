@@ -156,8 +156,6 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
 
         if ((pids[i] = fork()) == 0)
         {
-
-            // Proceso hijo
             close(pipe_to_child[i][1]);
             close(pipe_from_child[i][0]);
 
@@ -182,7 +180,6 @@ void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_chi
             perror("execve");
             exit(EXIT_FAILURE);
         }
-        // Proceso padre
         close(pipe_to_child[i][0]);
         close(pipe_from_child[i][1]);
     }

@@ -79,7 +79,6 @@ void openResources(memoryADT *adt)
         exit(EXIT_FAILURE);
     }
 
-    // Cambiar O_CREAT por 0
     if ((adt->sem_mutex = sem_open(adt->sem_mutex_name, O_CREAT, 0666, 1)) == SEM_FAILED)
     {
         perror("sem_open_MUTEX_view");
@@ -95,12 +94,11 @@ void openResources(memoryADT *adt)
     printf("VIEW OPENED\n");
 }
 
-// quizas no hace falta
 void unlinkResources(memoryADT *adt)
 {
     sem_unlink(adt->sem_mutex_name);
     sem_unlink(adt->sem_switch_name);
-    // shm_unlink(adt->shm_name);
+
 }
 
 void closeResources(memoryADT *adt)
