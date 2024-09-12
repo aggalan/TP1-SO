@@ -17,17 +17,18 @@ sem_t *open_semaphores(const char *sem_name, int mode);
 char * init_shm(const char * shm_name, size_t size, int *shm_fd);
 
 int main(int argc, char *argv[]) {
-    sem_unlink(SEM_SWITCH_NAME);
-    sem_unlink(SEM_MUTEX_NAME);
+
+    memoryADT adt = {0};
     
-    int shm_fd;
+    // sem_unlink(SEM_SWITCH_NAME);
+    // sem_unlink(SEM_MUTEX_NAME);
+    
+    // int shm_fd;
     char shm_name[MAX_PATH] = {0};
-    size_t size = 1048576;
-    char * shm;
-    sem_t * sem_mutex = open_semaphores(SEM_MUTEX_NAME, 1);
-    sem_t * sem_switch = open_semaphores(SEM_SWITCH_NAME, 0);
-
-
+    // size_t size = 1048576;
+    // char * shm;
+    // sem_t * sem_mutex = open_semaphores(SEM_MUTEX_NAME, 1);
+    // sem_t * sem_switch = open_semaphores(SEM_SWITCH_NAME, 0);
 
     if(argc < 2){
         
@@ -36,22 +37,39 @@ int main(int argc, char *argv[]) {
             printf("ERROR");
             exit(1);
         }
-        shm = init_shm(shm_name, size, &shm_fd);
+        initializeResources(&adt, shm_name, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
     else{
-        shm = init_shm(argv[1], size, &shm_fd);
+        initializeResources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
+    }   
+
+    // unlinkResources(&adt);
+    openResources(&adt);
+
+    printf("entro");
+    
+    int index = 0;
+    int status = 0;
+
+    while(1){
+        printf("entro");
+        readMemory(&adt, &index, &status);
+        if(status){
+            break;
+        }
     }
 
-    read_memory(sem_mutex, sem_switch, shm);
-    close(shm_fd);
-    if(sem_close(sem_mutex) == -1){
-        perror("sem_close_MUTEX_VIEW");
-        exit(EXIT_FAILURE);
-    }
-    if(sem_close(sem_switch) == -1){
-        perror("sem_close_switch_view");
-        exit(EXIT_FAILURE);
-    }
+    closeResources(&adt);
+
+    // close(shm_fd);
+    // if(sem_close(sem_mutex) == -1){
+    //     perror("sem_close_MUTEX_VIEW");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if(sem_close(sem_switch) == -1){
+    //     perror("sem_close_switch_view");
+    //     exit(EXIT_FAILURE);
+    // }
 
 
     return 0;
@@ -71,25 +89,7 @@ int pipe_read(int fd, char *buff){
     return i;
 }
 
-void read_memory(sem_t * sem_mutex, sem_t * sem_switch, char * shm){
-    int index = 0;
 
-    while(1){
-        sem_wait(sem_switch);
-        sem_wait(sem_mutex);  
-        while(shm[index] != '\n' && shm[index] != '\t'){
-            printf("%c", shm[index]);
-            index++;
-        } 
-        if(shm[index] == '\t'){
-            sem_post(sem_mutex);
-            break;
-        }
-        printf("%c", shm[index]);
-        index++;
-        sem_post(sem_mutex);
-    }
-}
 
 sem_t * open_semaphores(const char *sem_name, int mode){
     sem_t *sem = sem_open(sem_name, O_CREAT, 0666, mode);

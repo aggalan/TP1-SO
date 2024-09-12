@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-size_t size = 1048576;
 
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int * shm_fd);
 void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
@@ -18,7 +17,8 @@ int pipe_read(int fd, char *buffer);
 
 int main(int argc, char *argv[])
 {
-    int view_opened = 0;
+    memoryADT adt = {0};
+    // int view_opened = 0;
     int slaves = ((argc-1) > 20)? ((argc-1)/10) : 2;
     int initial_files_per_slave =  ((argc-1)/10/slaves>1) ? (((argc - 1)/10/(slaves))) : 1;
 
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     int pipe_to_child[slaves][2], pipe_from_child[slaves][2];
     pid_t pids[slaves];
     int info_length = strlen("MD5: %s - PID %d\n") + MAX_MD5 + MAX_PATH + 2;
-    int shm_fd;
+    // int shm_fd;
 
 
     if (argc < 2)
@@ -36,12 +36,12 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    if (shm_fd == -1)
-    {
-        perror("shm_open_MD5");
-        exit(EXIT_FAILURE);
-    }
+    // shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    // if (shm_fd == -1)
+    // {
+    //     perror("shm_open_MD5");
+    //     exit(EXIT_FAILURE);
+    // }
 
 
     if (!isatty(STDOUT_FILENO))
@@ -55,42 +55,45 @@ int main(int argc, char *argv[])
     }
 
 
-    char *shm = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (shm == MAP_FAILED)
-    {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-
-    sleep(2); //Le doy tiempo al view para que abra la shared memory y cree los semaforos
-
-    sem_t *sem_mutex = sem_open(SEM_MUTEX_NAME, 1);
-    if (sem_mutex != SEM_FAILED )
-    {
-        view_opened++;
-    }
-
-    sem_t *sem_switch = sem_open(SEM_SWITCH_NAME, 0);
-    if (sem_switch != SEM_FAILED)
-    {
-        view_opened++;
-    }
+    startResources(&adt, SHM_NAME, SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     
 
-    if (view_opened == 1)
-    {
-        perror("ERROR; MISSING 1 SEMAPHORE");
-        exit(1);
-    }
-    else if (view_opened == 0)
-    {
-        printf("NO VIEW OPENED\n");
-    }
-    if (ftruncate(shm_fd, size) == -1)
-    {
-        perror("ftruncate");
-        exit(EXIT_FAILURE);
-    }
+    // char *shm = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    // if (shm == MAP_FAILED)
+    // {
+    //     perror("mmap");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // sleep(2); //Le doy tiempo al view para que abra la shared memory y cree los semaforos
+
+    // sem_t *sem_mutex = sem_open(SEM_MUTEX_NAME, 1);
+    // if (sem_mutex != SEM_FAILED )
+    // {
+    //     view_opened++;
+    // }
+
+    // sem_t *sem_switch = sem_open(SEM_SWITCH_NAME, 0);
+    // if (sem_switch != SEM_FAILED)
+    // {
+    //     view_opened++;
+    // }
+    
+
+    // if (view_opened == 1)
+    // {
+    //     perror("ERROR; MISSING 1 SEMAPHORE");
+    //     exit(1);
+    // }
+    // else if (view_opened == 0)
+    // {
+    //     printf("NO VIEW OPENED\n");
+    // }
+    // if (ftruncate(shm_fd, size) == -1)
+    // {
+    //     perror("ftruncate");
+    //     exit(EXIT_FAILURE);
+    // }
 
     const char *filename = "results.txt";
     FILE *file = fopen(filename, "w");
@@ -101,7 +104,7 @@ int main(int argc, char *argv[])
     }
     
 
-    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids, &shm_fd);
+    setup_pipes_and_forks(slaves, pipe_to_child, pipe_from_child, pids, &adt.shm_fd);
 
     for (int i = 0; i < slaves; i++)
     {
@@ -127,9 +130,9 @@ int main(int argc, char *argv[])
 
         select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
-        if (view_opened == 2)
+        if (adt.view_opened == 2)
         {
-            sem_wait(sem_mutex);
+            sem_wait(adt.sem_mutex);
         }
         for (int i = 0; i < slaves; i++)
         {
@@ -140,11 +143,11 @@ int main(int argc, char *argv[])
                 pipe_read(pipe_from_child[i][0], md5);
                 fprintf(file, "MD5: %s - PID %d\n", md5, pids[i]);
                 fflush(file);
-                sprintf(shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
-                if (view_opened == 2)
+                sprintf(adt.shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
+                if (adt.view_opened == 2)
                 {
-                    sem_post(sem_switch);
-                    sem_post(sem_mutex);
+                    sem_post(adt.sem_switch);
+                    sem_post(adt.sem_mutex);
                 }
 
                 if (files_processed < files_to_process)
@@ -156,14 +159,14 @@ int main(int argc, char *argv[])
             }
         }
     }
-    if (view_opened == 2)
+    if (adt.view_opened == 2)
     {
-        sem_wait(sem_mutex);
-        sprintf(shm + files_read * info_length, "\t");
-        sem_post(sem_mutex);
-        sem_post(sem_switch);
-        sem_close(sem_mutex);
-        sem_close(sem_switch);
+        sem_wait(adt.sem_mutex);
+        sprintf(adt.shm + files_read * info_length, "\t");
+        sem_post(adt.sem_mutex);
+        sem_post(adt.sem_switch);
+        sem_close(adt.sem_mutex);
+        sem_close(adt.sem_switch);
     }
 
     for (int i = 0; i < slaves; i++)
@@ -182,7 +185,7 @@ int main(int argc, char *argv[])
     sem_unlink(SEM_MUTEX_NAME);
     sem_unlink(SEM_SWITCH_NAME);
     shm_unlink(SHM_NAME);
-    close(shm_fd);
+    close(adt.shm_fd);
 
 
     return EXIT_SUCCESS;
