@@ -39,4 +39,10 @@ void close_resources(memory_adt *adt);
 
 void read_memory(memory_adt *adt, int *index, int *status);
 
+int pipe_read(int fd, char *buff);
+
+void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
+
+void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int *shm_fd);
+
 #endif

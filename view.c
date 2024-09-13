@@ -11,15 +11,11 @@
 #include <sys/stat.h>
 #include <semaphore.h>
 
-int pipe_read(int fd, char *buffer);
 
 int main(int argc, char *argv[])
 {
 
     memory_adt adt = {0};
-
-    sem_unlink(SEM_SWITCH_NAME);
-    sem_unlink(SEM_MUTEX_NAME);
     char shm_name[MAX_PATH] = {0};
 
     if (argc < 2)
@@ -38,6 +34,7 @@ int main(int argc, char *argv[])
         initialize_resources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
 
+    unlink_resources(&adt);
 
     open_resources(&adt);
 
@@ -58,18 +55,5 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int pipe_read(int fd, char *buff)
-{
-    int i = 0;
-    char last_charater_read[1];
-    last_charater_read[0] = 1;
 
-    while (last_charater_read[0] != 0 && last_charater_read[0] != '\n' && read(fd, last_charater_read, 1) > 0)
-    {
-        buff[i++] = last_charater_read[0];
-    }
-    buff[i] = 0;
-
-    return i;
-}
 
