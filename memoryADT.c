@@ -90,8 +90,6 @@ void open_resources(memory_adt *adt)
         perror("sem_open_SWITCH");
         exit(EXIT_FAILURE);
     }
-
-    printf("VIEW OPENED\n");
 }
 
 void unlink_resources(memory_adt *adt)

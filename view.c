@@ -12,8 +12,6 @@
 #include <semaphore.h>
 
 int pipe_read(int fd, char *buffer);
-sem_t *open_semaphores(const char *sem_name, int mode);
-char *init_shm(const char *shm_name, size_t size, int *shm_fd);
 
 int main(int argc, char *argv[])
 {
@@ -75,30 +73,3 @@ int pipe_read(int fd, char *buff)
     return i;
 }
 
-sem_t *open_semaphores(const char *sem_name, int mode)
-{
-    sem_t *sem = sem_open(sem_name, O_CREAT, 0666, mode);
-    if (sem == SEM_FAILED)
-    {
-        perror("sem_open");
-        exit(1);
-    }
-    return sem;
-}
-
-char *init_shm(const char *shm_name, size_t size, int *shm_fd)
-{
-    *shm_fd = shm_open(shm_name, O_RDWR, 0666);
-    if ((*shm_fd) == -1)
-    {
-        perror("shm_open_VIEW");
-        exit(EXIT_FAILURE);
-    }
-    char *shared_memory = mmap(NULL, size, PROT_READ, MAP_SHARED, *shm_fd, 0);
-    if (shared_memory == MAP_FAILED)
-    {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-    return shared_memory;
-}
