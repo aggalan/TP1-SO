@@ -10,10 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int *shm_fd);
-void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty);
-int pipe_read(int fd, char *buffer);
-
 int main(int argc, char *argv[])
 {
     memory_adt adt = {0};
@@ -149,80 +145,4 @@ int main(int argc, char *argv[])
     close(adt.shm_fd);
 
     return EXIT_SUCCESS;
-}
-
-void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int *shm_fd)
-{
-    for (int i = 0; i < slaves; i++)
-    {
-        if (pipe(pipe_to_child[i]) == -1 || pipe(pipe_from_child[i]) == -1)
-        {
-            perror("pipe");
-            exit(EXIT_FAILURE);
-        }
-
-        if ((pids[i] = fork()) == 0)
-        {
-            close(pipe_to_child[i][1]);
-            close(pipe_from_child[i][0]);
-
-            dup2(pipe_to_child[i][0], STDIN_FILENO);
-            close(pipe_to_child[i][0]);
-            close(*shm_fd);
-
-            dup2(pipe_from_child[i][1], STDOUT_FILENO);
-            close(pipe_from_child[i][1]);
-
-            for (int j = 0; j < i; j++)
-            {
-                for (int k = 0; k < 2; k++)
-                {
-                    close(pipe_to_child[j][k]);
-                    close(pipe_from_child[j][k]);
-                }
-            }
-
-            char *args[] = {"./slave", NULL};
-            execve(args[0], args, NULL);
-            perror("execve");
-            exit(EXIT_FAILURE);
-        }
-        close(pipe_to_child[i][0]);
-        close(pipe_from_child[i][1]);
-    }
-}
-void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, int qty)
-{
-    for (int i = 0; i < qty; i++)
-    {
-        if ((*files_processed) < total_files)
-        {
-            int bytes_written = write(fd, argv[*files_processed + 1], strlen(argv[(*files_processed) + 1]) + 1);
-            if (bytes_written < 0)
-            {
-                perror("write pipe");
-                exit(EXIT_FAILURE);
-            }
-            (*files_processed)++;
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
-int pipe_read(int fd, char *buff)
-{
-    int i = 0;
-    char last_charater_read[1];
-    last_charater_read[0] = 1;
-
-    while (last_charater_read[0] != 0 && last_charater_read[0] != '\n' && read(fd, last_charater_read, 1) > 0)
-    {
-        buff[i++] = last_charater_read[0];
-    }
-    buff[i] = 0;
-
-    return i;
 }
