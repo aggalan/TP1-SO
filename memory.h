@@ -32,8 +32,6 @@ void create_resources(memory_adt *adt);
 
 void open_resources(memory_adt *adt);
 
-void unlink_resources(memory_adt *adt);
-
 void close_resources(memory_adt *adt);
 
 void read_memory(memory_adt *adt, int *index, int *status);

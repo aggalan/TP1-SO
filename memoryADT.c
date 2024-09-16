@@ -13,7 +13,6 @@
 void start_resources(memory_adt *adt, char *shm_name, char *sem_mutex_name, char *sem_switch_name, size_t size)
 {
     initialize_resources(adt, shm_name, sem_mutex_name, sem_switch_name, size);
-    unlink_resources(adt);
     create_resources(adt);
 }
 
@@ -90,12 +89,6 @@ void open_resources(memory_adt *adt)
         perror("sem_open_SWITCH");
         exit(EXIT_FAILURE);
     }
-}
-
-void unlink_resources(memory_adt *adt)
-{
-    sem_unlink(adt->sem_mutex_name);
-    sem_unlink(adt->sem_switch_name);
 }
 
 void close_resources(memory_adt *adt)

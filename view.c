@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
 {
 
     memory_adt adt = {0};
-
     sem_unlink(SEM_SWITCH_NAME);
     sem_unlink(SEM_MUTEX_NAME);
     char shm_name[MAX_PATH] = {0};
