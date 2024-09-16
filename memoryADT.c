@@ -102,6 +102,7 @@ void close_resources(memory_adt *adt)
 {
     sem_close(adt->sem_mutex);
     sem_close(adt->sem_switch);
+    munmap(adt->shm, adt->size);
     close(adt->shm_fd);
 }
 
