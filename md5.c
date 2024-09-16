@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
 
     sem_unlink(SEM_MUTEX_NAME);
     sem_unlink(SEM_SWITCH_NAME);
+    munmap(adt.shm, SIZE);
     shm_unlink(SHM_NAME);
     close(adt.shm_fd);
 

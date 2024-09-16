@@ -1,6 +1,6 @@
 # Variables
 CC = gcc
-CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500 -fsanitize=address
+CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500
 EXECUTABLES = slave md5 view
 OBJECTS = slave.o md5.o view.o memoryADT.o
 
@@ -43,7 +43,7 @@ clean_objects:
 
 # Regla para limpiar todo (ejecutables y otros archivos generados)
 clean:
-	rm -f $(EXECUTABLES) salida.txt PVS-Studio.log report.tasks strace_out
+	rm -f $(EXECUTABLES) salida.txt PVS-Studio.log report.tasks strace_out report.html
 	rm -rf .config
 	$(MAKE) clean_objects
 
