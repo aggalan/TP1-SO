@@ -17,8 +17,8 @@ int pipe_read(int fd, char *buffer);
 int main(int argc, char *argv[])
 {
     memory_adt adt = {0};
-    int slaves = ((argc - 1) > 20) ? ((argc - 1) / 10) : ((argc -1) > 1 ? 2 : 1);
-    int initial_files_per_slave = ((argc - 1) /50 > 0) ? ((argc - 1) / 50) : 1;
+    int slaves = ((argc - 1) > 20) ? ((argc - 1) / 10) : ((argc - 1) > 1 ? 2 : 1);
+    int initial_files_per_slave = ((argc - 1) / 50 > 0) ? ((argc - 1) / 50) : 1;
 
     int files_to_process = argc - 1;
     int files_processed = 0, files_read = 0;
@@ -128,6 +128,13 @@ int main(int argc, char *argv[])
     {
         close(pipe_to_child[i][1]);
         close(pipe_from_child[i][0]);
+        int status;
+        pid_t pid = waitpid(pids[i], &status, 0);
+        if (pid == -1)
+        {
+            perror("waitpid");
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (fclose(file) != 0)

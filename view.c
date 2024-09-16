@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
         initialize_resources(&adt, argv[1], SEM_MUTEX_NAME, SEM_SWITCH_NAME, SIZE);
     }
 
-
     open_resources(&adt);
 
     int index = 0;
@@ -72,4 +71,3 @@ int pipe_read(int fd, char *buff)
 
     return i;
 }
-

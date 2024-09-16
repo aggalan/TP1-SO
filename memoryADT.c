@@ -96,7 +96,6 @@ void unlink_resources(memory_adt *adt)
 {
     sem_unlink(adt->sem_mutex_name);
     sem_unlink(adt->sem_switch_name);
-
 }
 
 void close_resources(memory_adt *adt)
