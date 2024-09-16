@@ -1,6 +1,6 @@
 # Variables
 CC = gcc
-CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500
+CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500 -fsanitize=address
 EXECUTABLES = slave md5 view
 OBJECTS = slave.o md5.o view.o memoryADT.o
 
@@ -10,7 +10,7 @@ all: $(EXECUTABLES)
 	$(MAKE) clean_objects
 
 # Regla para construir el ejecutable slave
-slave: slave.o 
+slave: slave.o memoryADT.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Regla para construir el ejecutable md5

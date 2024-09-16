@@ -34,3 +34,4 @@ error
 
 *.txt
 *.txt:*
+*.sh

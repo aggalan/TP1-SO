@@ -54,7 +54,7 @@ void create_resources(memory_adt *adt)
 
     else if ((adt->view_opened) == 0)
     {
-        printf("NO VIEW OPENED\n");
+        printf("No view opened\n");
     }
 
     if ((ftruncate(adt->shm_fd, adt->size)) < 0)
@@ -126,7 +126,6 @@ void read_memory(memory_adt *adt, int *index, int *status)
     sem_post(adt->sem_mutex);
 }
 
-
 void setup_pipes_and_forks(int slaves, int pipe_to_child[][2], int pipe_from_child[][2], pid_t pids[], int *shm_fd)
 {
     for (int i = 0; i < slaves; i++)
@@ -189,17 +188,36 @@ void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, i
     }
 }
 
-int pipe_read(int fd, char *buff)
+int pipe_read(int fd, char *buffer)
 {
     int i = 0;
-    char last_charater_read[1];
-    last_charater_read[0] = 1;
+    char chunk[CHUNK_SIZE];
+    ssize_t bytes_read;
+    int chunk_end;
 
-    while (last_charater_read[0] != 0 && last_charater_read[0] != '\n' && read(fd, last_charater_read, 1) > 0)
+    while (1)
     {
-        buff[i++] = last_charater_read[0];
-    }
-    buff[i] = 0;
 
+        memset(chunk, 0, CHUNK_SIZE);
+
+        bytes_read = read(fd, chunk, CHUNK_SIZE);
+        if (bytes_read <= 0)
+        {
+            break;
+        }
+
+        for (chunk_end = 0; chunk_end < bytes_read; chunk_end++)
+        {
+            if (chunk[chunk_end] == '\n' || chunk[chunk_end] == '\0')
+            {
+                buffer[i++] = chunk[chunk_end];
+                buffer[i] = 0;
+                return i;
+            }
+            buffer[i++] = chunk[chunk_end];
+        }
+    }
+
+    buffer[i] = 0;
     return i;
 }

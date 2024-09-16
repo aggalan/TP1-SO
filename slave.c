@@ -3,8 +3,7 @@
 
 #include "commons.h"
 #define OFFSET 3
-
-int pipe_read(int fd, char *buffer);
+#include "memory.h"
 
 int main()
 {
@@ -40,17 +39,4 @@ int main()
     }
     close(STDOUT_FILENO);
     exit(EXIT_SUCCESS);
-}
-
-int pipe_read(int fd, char *buffer)
-{
-    int i = 0;
-    char last_read[1];
-    last_read[0] = 1;
-    while (last_read[0] != 0 && last_read[0] != '\n' && read(fd, last_read, 1) > 0)
-    {
-        buffer[i++] = last_read[0];
-    }
-    buffer[i] = 0;
-    return i;
 }

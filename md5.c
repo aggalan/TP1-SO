@@ -94,9 +94,9 @@ int main(int argc, char *argv[])
                 pipe_read(pipe_from_child[i][0], md5);
                 fprintf(file, "MD5: %s - PID %d\n", md5, pids[i]);
                 fflush(file);
-                sprintf(adt.shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
                 if (adt.view_opened == 2)
                 {
+                    sprintf(adt.shm + files_read * info_length, "MD5: %s - PID %d\n", md5, pids[i]);
                     sem_post(adt.sem_switch);
                     sem_post(adt.sem_mutex);
                 }

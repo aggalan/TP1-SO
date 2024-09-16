@@ -8,5 +8,6 @@
 
 #define MAX_MD5 35
 #define MAX_PATH 128
+#define CHUNK_SIZE 1024
 
 #endif
