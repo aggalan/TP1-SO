@@ -1,41 +1,48 @@
-// This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
-
 #include "commons.h"
 #define OFFSET 3
 #include "memory.h"
 
 int main()
 {
-
     char path[MAX_PATH] = {0};
     char *md5sum = "md5sum %s";
-    char command[MAX_PATH + strlen(md5sum)];
+    char command[MAX_PATH + 100];
     char md5[MAX_MD5 + MAX_PATH + OFFSET];
+    int bytes_read = 0;
 
-    while (pipe_read(STDIN_FILENO, path) > 0)
+    while ((bytes_read = pipe_read(STDIN_FILENO, path)) > 0)
     {
-
         if (path[0] == 0)
         {
             break;
         }
 
-        sprintf(command, md5sum, path);
+        int i = 0;
+        char *current = path;
 
-        FILE *log = popen(command, "r");
-
-        if (log == NULL)
+        while (i < bytes_read)
         {
-            perror("peopen");
-            exit(EXIT_FAILURE);
+            if (path[i] == '\0')
+            {
+                snprintf(command, sizeof(command), md5sum, current);
+
+                FILE *log = popen(command, "r");
+                if (log == NULL)
+                {
+                    perror("popen");
+                    exit(EXIT_FAILURE);
+                }
+
+                if (fgets(md5, sizeof(md5), log) != NULL)
+                {
+                    write(STDOUT_FILENO, md5, strlen(md5));
+                }
+
+                pclose(log);
+                current = path + i + 1;
+            }
+            i++;
         }
-
-        fgets(md5, MAX_MD5 + strlen(path), log);
-
-        pclose(log);
-
-        write(STDOUT_FILENO, md5, strlen(md5) + 1);
     }
     close(STDOUT_FILENO);
     exit(EXIT_SUCCESS);

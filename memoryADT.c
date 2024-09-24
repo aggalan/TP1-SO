@@ -184,34 +184,12 @@ void write_to_pipe(int fd, char **argv, int *files_processed, int total_files, i
 
 int pipe_read(int fd, char *buffer)
 {
-    int i = 0;
-    char chunk[CHUNK_SIZE];
-    ssize_t bytes_read;
-    int chunk_end;
-
-    while (1)
+    int bytes_read = read(fd, buffer, MAX_PATH);
+    if (bytes_read < 0)
     {
-
-        memset(chunk, 0, CHUNK_SIZE);
-
-        bytes_read = read(fd, chunk, CHUNK_SIZE);
-        if (bytes_read <= 0)
-        {
-            break;
-        }
-
-        for (chunk_end = 0; chunk_end < bytes_read; chunk_end++)
-        {
-            if (chunk[chunk_end] == '\n' || chunk[chunk_end] == '\0')
-            {
-                buffer[i++] = chunk[chunk_end];
-                buffer[i] = 0;
-                return i;
-            }
-            buffer[i++] = chunk[chunk_end];
-        }
+        perror("read pipe");
+        exit(EXIT_FAILURE);
     }
-
-    buffer[i] = 0;
-    return i;
+    return bytes_read;
 }
+
